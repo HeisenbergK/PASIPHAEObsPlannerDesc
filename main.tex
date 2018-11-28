@@ -2,38 +2,40 @@
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+
 
 \title{PASIPHAE - Observation Planner Software}
-\author{John Kypriotakis, Poorva Bhalerao, Siddharth Maharana}
-\date{October 2018}
+\author{John A. Kypriotakis, Poorva Bhalerao, Siddharth Maharana}
+\date{\today}
 
 \begin{document}
 
 \maketitle
 
 \section{Introduction}
-This document highlights the progress of the observation planning of PASIPHAE. 
+The purpose of this document is to introduce the PASIPHAE collaboration to the necessity, the opperation principles, the development and the timeline of the observation planner software that will accompany the survey.
 
+\section{Description}
+The observation planner algorithm of PASIPHAE will be an almost entirely independent system that will handle the scheduling of observations over the complete duration of the survey, at both observing sites. Its fundamental role is to optimize the observing strategy in terms of time and other costly resources. The algorithm will choose the ‘best’ field to be observed by the telescope at a particular point of time and forward this decision to the telescope control pipeline. This technique surpasses most previously used surveying strategies such as the drift mode of the ALFALFA survey [\cite{Giovanelli2005}] and other multiple-pass strategies as it will continously strive to eliminate capturing of bad science images. 
 
-\section{The Observation Planner Software}
-\subsection{Description}
-The Observation Planner Software (henceforth referred to as 'OPS') of the Polar-Areas Stellar Imaging in Polarization High-Accuracy Experiment (PASIPHAE) will be an almost entirely independent system that will handle the scheduling of observations over the complete duration of the survey, at both observing sites. Its fundamental role is to optimize the observing strategy in terms of time and other costly resources. The Observation Planner Software will choose the ‘best’ field to be observed by the telescope at a particular point of time and forward this decision to the Telescope Control with or without an operator’s approval. This technique surpasses most previously used surveying strategies such as the drift mode of the ALFALFA Survey (Giovanelli R. et al. 2005) and other multiple-pass strategies as it will continually strive to eliminate capturing of bad science images. 
-
-\subsection{Objectives}
-The general idea is to create a metric function with a set of static and dynamic input parameters as its individual terms. The value of this metric function will decide the priority of a field to be observed and an output analogous to a heat-map will be generated based on the priority for each field.
-\\
-\\
-The software must have the following primary features:
+\section{Target features}
+The algorithm must have the following features in order to perform as expected:
 \begin{enumerate}
-\item Access to required databases concerning all input parameters;
-\item An optimized algorithm and merit function taking into account all possible inputs and scalability of each individual parameter;
-\item Ability to generate an optimal metric map taking into account the "cost" of choosing the next field (for example, time of slew to next field);
-\item Implement a unified approach to cover the entire target sky area in coherent patches; 
-\item Ability to "recover from stoppage in the middle of a night" (Delgado F. et al. 2014) in order to minimize down-time.
+\item Correct balance between the merit terms, in order to accurately estimate the merit of each candidate field.
+\item Time-efficiency in calculation of the merit function.
+\item Self-consistency and good grouping of fields to be observed in coherent patches.
+\item Ability to handle the unexpected.
 \end{enumerate}
 
-\subsection{The Base Algorithm}
+\section{Opperation principle}
+The core of the algorithm will be a merit function with a set of static and dynamic input variables. The value of this merit function will decide the priority of a field to be observed and an output analogous heat map will be generated based on the priority for each field.
 
+\clearpage
+\section{The Base Algorithm}
+The observation planner will comprise of three main abstract  components - the preample, the minimizer and the announcer, as presented in figure \ref{fig:baseflow}
 \begin{figure}[!ht]
 \centering
 \includegraphics[width=\linewidth]{Base_new.pdf}
@@ -41,65 +43,80 @@ The software must have the following primary features:
 \label{fig:baseflow}
 \end{figure}
 
-The Observation Planner will comprise of at least three main abstract  components - 1.Preample, 2.Minimizer and 3.Announcer.
+\subsection{Preample}
+The preample handles a set of inputs (which are mentioned in section \ref{sec:ins}) from various sources for each component of the merit function, computes the value of the merit function and passes a merit map to the minimizer.
 
-\subsubsection{Preample}
-The preample takes in a set of inputs (which are mentioned in a later section) from various input modules for each parameter of the metric function, computes the value of the metric function and passes a metric map to the minimizer.
+\subsection{Minimizer}
+The minimizer then looks for the field with the highest merit i.e. the field having the highest priority (taking into account the coherency of the observed and candidate fields) and sends an approval request to the telescope operator. The operator then approves this decision and the approval is passed on to the announcer. In case the operator does not respond, or has set the algorithm to full-auto mode, the minimizer directly invokes the announcer. 
 
-\subsubsection{Minimizer}
-The minimizer then looks for the field having the lowest metric i.e. the field having the highest priority (lower the metric function value, higher is its priority) and sends an approval request to the telescope operator.\newline The operator then approves this decision and the approval is passed on to the announcer.\newline In case the operator does not respond to the request within the stipulated time window, the minimizer directly outputs the next chosen field to the announcer. 
+\subsection{Announcer}
+The announcer accepts the chosen field and sends the corresponding pointing information to the Telescope Control. The acquired data, as one of the input modules, will in turn be fed back to the preample as an input to construct an updated metric map.
 
-\subsubsection{Announcer}
-The announcer accepts the chosen field and sends the corresponding pointing information to the Telescope Control.\\The acquired data, as one of the input modules, will in turn be fed back to the preample as an input to construct an updated metric map.
+\section{Input Parameters}\label{sec:ins}
+The set of input parameters can be divided into: static inputs, dynamic inputs and user assisted inputs. A brief description of each of the inputs is provided below.
 
-\subsection{Input Parameters to Calculate Field Priority}
-The set of input modules to the Observation Planner can be divided into: Static inputs, Dynamic inputs and User Assisted inputs. A brief description of each of the inputs is provided below.
-
-\subsubsection{Static Inputs}
+\subsection{Static Inputs}
+Static inputs are the parameters that we do not expect to change within the span of our survey.
 \begin{enumerate}
-\item Intended survey coverage\newline
-    The intended survey coverage of the Northern and Southern Galactic Planes as per specification by the collaboration.
-\item Location of the city\newline
-    The distance of the observing sites from the nearest city is known, hence subsequent light pollution can be accounted for. 
-\item Specifications and limitations of the telescope, telescope instruments and observatory dome\newline
-    Specifications such as-
-    \begin{enumerate}
-        \item Frame size for WALOP-N (30'x30') and WALOP-S (35'x35');
-        \item Speed of telescope slew;
-        \item Other specifications of the telescope instrument that will affect the observing strategy.
-    \end{enumerate}
-    Limitations such as those specified on the SAAO website \\(https://www.saao.ac.za/science/facilities/telescopes/1-0m/) pertaining to the construction of the 1.0m telescope and its building. Similar limitations might exist for the Srinakas 
-    observing site too.
+\item Intended survey coverage: \\
+The intended survey coverage of the northern and southern Galactic poles.
+
+\item Earth-bound light contamination: \\
+The location, altitude and proximity of potential light contaminants (e.g. city lights, telecommunications antennae, wind turbines).
+
+\item Specifications and limitations of the telescope, instrument and dome:
+\begin{enumerate}
+	\item Field size
+	\item Slew speed
+	\item Instrument sensitivity
+	\item Instrument readout time
+	\item Expected observing season
+\end{enumerate}
 \end{enumerate}
 
-\subsubsection{Dynamic Inputs}
+\subsection{Dynamic Inputs}
+The dunamic inputs are the parameters that we expect to vary with either large or small frequency through the survey period.
 \begin{enumerate}
-   \item Lunar phase and lunar position\\
-   It is a deterministic dynamical input; although we know the ephemeris of the moon, the lunar phase and position will result in variation in relative sky brightness and thus affect a particular field dynamically.
-   \item Upwind conditions\\
-   The seeing and inevitably, the data quality will be affected if wind is blowing against the current direction of telescope pointing.
-   \item Cloud coverage\\
-   \item Current telescope position\\
-   The current telescope position will determine the boundaries for choosing the next field as the nearer fields will hold a higher priority to minimize slew time.
-   \item Inadequate image quality\\
-   If a field's target data quality is unsatisfied, it will have to be re-visited.
-   \item Length of exposure\\
-   The length of exposure needed for a field varies with time and field.
+	\item Lunar phase and lunar position (deterministic parameter)\\
+	\item Wind \&{} Atmospheric conditions (non-deterministic parameter)\\
+	\item Current telescope position (deterministic parameter)\\
+	\item Existing image quality (deterministic parameter)\\
+	\item Length of exposure (quasi-deterministic parameter)\\
+	\item Down time (quasi-deterministic parameter)\\
+\end{enumerate}
+Deterministic dynamical inputs are those that under all circumstances can be determined beforehand. Quasi deterministic parameters are those that usually can be determined before the observations actually commence and, if they vary, they do so with prior notice. Non-deterministic parameters will vary without prior notice and are usually not predictable.
+
+\subsection{User Assisted Inputs - High Importance Fields}
+Fields with objects of opportunity, transient phenomena and other science-driven goals will be assigned priority by the users.
+
+\section{Merit Function Terms}
+The field priorities will be calculated by the merit function. The aforementioned input parameters will be handled by submodules in order to be mathematicized, to be included as terms in this merit function. Mathematizing the input parameters implies quantifying the input factors and expressing their influence as a mathematical expression.
+
+The terms of the merit function will include:
+
+\begin{enumerate}
+	\item Slew time (the more time required to slew, the smaller the merit of the field - zero influence to fields with slew time less than the readout time)\\
+	\item Weather influence (the larger the influence of the nature elements (face wind, dust, etc.), the smaller the merit of the field)\\
+	\item Existing image quality (if the field has been observed before then the priority is reduced, the priority becomes 0 for fields with observed polarimetric $\frac{S}{N}>3$, clustering of fields increases their merit)\\
+	\item Required depth (fields with less bright stars, or contaminated by other light sources (moon, city lights etc.) have reduced merit)\\
+	\item Custom prioritization (user-prioritized fields have higher merit)
 \end{enumerate}
 
-\subsubsection{User Assisted Inputs}
+After defining the exact mathematical formulae relating the input parameters to their contribution in the above merit function terms, the terms will be weighted and the total merit function will be constructed. 
+
+\section{Development}
+The dev-team of the algorithm is led by J. A. K. (Ph.D. fellow, UoC) and includes S.M. (Senior Ph.D. Research Scholar, IUCAA), P.B. (Undergraduate project student, IUCAA) and Rahul Sanghvi (Undergraduate project student, IUCAA).
+
+\section{Timeline}
+The mentioned team will develop the algorithm, attempting to follow the following timeline:
+
 \begin{enumerate}
-    \item High importance fields\\
-    Fields with objects of opportunity, transient phenomena and other science-driven goals will be assigned priority as per the user's input.
+	\item Development of analytic functions and their corresponding side-modules / Deliverable: side-modules explanatory document, beta of side-modules / Second half of February 2019
+	\item Development of the preample, minimizer, announcer and wrapper, testing and proofing of the algorithm / Deliverable: observation planner and its manual / Second half of March 2019
 \end{enumerate}
 
-
-\subsubsection{Down-time}
-An important aspect to be considered along with the above mentioned factors is that the field preference order before and after an operation shutdown can differ. An operation or telescope shutdown can be caused by: 1) dust, 2) wind, 3) stormy conditions, 4) high humidity, 5) any system or component failure, and other possible undesirable reasons. The OPS will cater to this by introducing an additional parameter to redefine priorities after every operational shutdown.
-
-Additionally, the software should also be able to optimally handle a shutdown or a system failure after restarting, by resuming its tasks in a way that reduces operational time loss.\par
-
-\subsection{The Merit Function}
-The field priorities will be calculated numerically by the merit function. The aforementioned input parameters will be mathematized to be included as terms in this merit function. Mathematizing the input parameters implies quantifying the input factors, expressing them as a mathematical expression and subsequently assigning weights to each metric function term to make the entire function scalable in terms of its inputs. 
+\nocite{*}
+\bibliography{biblio}
+\bibliographystyle{mnras}
 
 \end{document}
