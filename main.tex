@@ -16,7 +16,7 @@
 \maketitle
 
 \section{Introduction}
-The purpose of this document is to introduce the PASIPHAE collaboration to the necessity, the opperation principles, the development and the timeline of the observation planner software that will accompany the survey.
+The purpose of this document is to introduce the PASIPHAE collaboration to the necessity, the operation principles, the development and the timeline of the observation planner software that will accompany the survey.
 
 \section{Description}
 The observation planner algorithm of PASIPHAE will be an almost entirely independent system that will handle the scheduling of observations over the complete duration of the survey, at both observing sites. Its fundamental role is to optimize the observing strategy in terms of time and other costly resources. The algorithm will choose the ‘best’ field to be observed by the telescope at a particular point of time and forward this decision to the telescope control pipeline. This technique surpasses most previously used surveying strategies such as the drift mode of the ALFALFA survey [\cite{Giovanelli2005}] and other multiple-pass strategies as it will continously strive to eliminate capturing of bad science images. 
@@ -30,12 +30,12 @@ The algorithm must have the following features in order to perform as expected:
 \item Ability to handle the unexpected.
 \end{enumerate}
 
-\section{Opperation principle}
-The core of the algorithm will be a merit function with a set of static and dynamic input variables. The value of this merit function will decide the priority of a field to be observed and an output analogous heat map will be generated based on the priority for each field.
+\section{Operation principle}
+The core of the algorithm will be a merit function with a set of static and dynamic input variables. The value of this merit function will decide the priority of a field to be observed and an output analogous to a heat map will be generated based on the priority for each field.
 
 \clearpage
 \section{The Base Algorithm}
-The observation planner will comprise of three main abstract  components - the preample, the minimizer and the announcer, as presented in figure \ref{fig:baseflow}
+The observation planner will comprise of three main abstract components - the preample, the minimizer and the announcer, as presented in figure \ref{fig:baseflow}
 \begin{figure}[!ht]
 \centering
 \includegraphics[width=\linewidth]{Base_new.pdf}
